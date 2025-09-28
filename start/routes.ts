@@ -11,6 +11,9 @@ import app from '@adonisjs/core/services/app'
 import router from '@adonisjs/core/services/router'
 
 import AuthController from '#controllers/auth_controller'
+import CitiesController from '#controllers/cities_controller'
+import GeographyController from '#controllers/geography_controller'
+import ProvincesController from '#controllers/provinces_controller'
 import UsersController from '#controllers/users_controller'
 import { middleware } from '#start/kernel'
 
@@ -24,10 +27,14 @@ router.get('/', ({ response }) => {
   })
 })
 
+router.get('/geo/tree', [GeographyController, 'tree'])
+
 router.post('/login', [AuthController, 'login'])
 
 router
   .group(() => {
     router.resource('users', UsersController).apiOnly()
+    router.resource('provinces', ProvincesController).apiOnly()
+    router.resource('cities', CitiesController).apiOnly()
   })
   .middleware(middleware.auth())

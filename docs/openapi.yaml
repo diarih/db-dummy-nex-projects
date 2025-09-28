@@ -1,0 +1,618 @@
+openapi: 3.0.3
+info:
+  title: db-dummy-nex-projects API
+  version: 1.0.0
+  description: >-
+    REST API for authentication, user management, and Indonesian geography
+    (provinces and cities) used by the db-dummy-nex-projects service.
+servers:
+  - url: http://localhost:3333
+    description: Local development server
+security:
+  - BearerAuth: []
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns service metadata for uptime monitoring.
+      responses:
+        '200':
+          description: Health payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /login:
+    post:
+      tags: [Auth]
+      summary: Issue access token
+      description: Authenticates a user with email/password and returns a bearer token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthCredentials'
+      responses:
+        '200':
+          description: Authentication succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsers'
+    post:
+      tags: [Users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '409':
+          description: Email conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Users]
+      summary: Get user by id
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      tags: [Users]
+      summary: Update user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '409':
+          description: Email conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Users]
+      summary: Delete user
+      responses:
+        '204':
+          description: User removed
+  /provinces:
+    get:
+      tags: [Geography]
+      summary: List provinces
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/WithCities'
+      responses:
+        '200':
+          description: Paginated provinces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProvinces'
+    post:
+      tags: [Geography]
+      summary: Create province
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProvinceRequest'
+      responses:
+        '201':
+          description: Province created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Province'
+        '409':
+          description: Duplicate province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /provinces/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Geography]
+      summary: Get province
+      responses:
+        '200':
+          description: Province detail (includes cities)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvinceWithCities'
+    put:
+      tags: [Geography]
+      summary: Update province
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProvinceRequest'
+      responses:
+        '200':
+          description: Updated province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Province'
+        '409':
+          description: Duplicate province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Geography]
+      summary: Delete province
+      responses:
+        '204':
+          description: Province removed
+  /cities:
+    get:
+      tags: [Geography]
+      summary: List cities
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/ProvinceIdFilter'
+      responses:
+        '200':
+          description: Paginated cities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCities'
+    post:
+      tags: [Geography]
+      summary: Create city
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCityRequest'
+      responses:
+        '201':
+          description: City created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityWithProvince'
+        '409':
+          description: Duplicate city within province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /cities/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Geography]
+      summary: Get city
+      responses:
+        '200':
+          description: City detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityWithProvince'
+    put:
+      tags: [Geography]
+      summary: Update city
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCityRequest'
+      responses:
+        '200':
+          description: Updated city
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityWithProvince'
+        '409':
+          description: Duplicate city within province
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Geography]
+      summary: Delete city
+      responses:
+        '204':
+          description: City removed
+  /geo/tree:
+    get:
+      tags: [Geography]
+      summary: Retrieve geo tree
+      description: Public endpoint returning all provinces with their cities.
+      responses:
+        '200':
+          description: Province-city tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProvinceWithCities'
+      security: []
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number (1-indexed).
+    PerPage:
+      name: perPage
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+      description: Page size (max 100).
+    WithCities:
+      name: withCities
+      in: query
+      schema:
+        type: boolean
+        default: false
+      description: Include nested cities when true.
+    ProvinceIdFilter:
+      name: provinceId
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+      description: Filter cities by province id.
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        service:
+          type: string
+          example: db-dummy-nex-projects
+        version:
+          type: string
+          example: 0.0.0
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-09-28T12:00:00.000Z
+        uptimeSeconds:
+          type: integer
+          example: 86400
+    AuthCredentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@admin.com
+        password:
+          type: string
+          format: password
+          example: admin1234
+        deviceName:
+          type: string
+          example: web-dashboard
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/AccessToken'
+        user:
+          $ref: '#/components/schemas/User'
+    AccessToken:
+      type: object
+      properties:
+        type:
+          type: string
+          example: opaque
+        name:
+          type: string
+          nullable: true
+          example: api-token
+        token:
+          type: string
+          description: Bearer token value
+          example: at_2zU4K1... (truncated)
+        abilities:
+          type: array
+          items:
+            type: string
+          example: []
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          example: admin@admin.com
+        fullName:
+          type: string
+          nullable: true
+          example: Administrator
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CreateUserRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+          nullable: true
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+          nullable: true
+    Province:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          example: ID-JK
+        name:
+          type: string
+          example: DKI Jakarta
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ProvinceWithCities:
+      allOf:
+        - $ref: '#/components/schemas/Province'
+        - type: object
+          properties:
+            cities:
+              type: array
+              items:
+                $ref: '#/components/schemas/City'
+    CreateProvinceRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          maxLength: 16
+        name:
+          type: string
+          maxLength: 255
+    UpdateProvinceRequest:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+        provinceId:
+          type: integer
+        code:
+          type: string
+          example: ID-JK-JP
+        name:
+          type: string
+          example: Jakarta Pusat
+        classification:
+          type: string
+          enum: [city, regency]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CityWithProvince:
+      allOf:
+        - $ref: '#/components/schemas/City'
+        - type: object
+          properties:
+            province:
+              $ref: '#/components/schemas/Province'
+    CreateCityRequest:
+      type: object
+      required: [provinceId, code, name]
+      properties:
+        provinceId:
+          type: integer
+        code:
+          type: string
+          maxLength: 16
+        name:
+          type: string
+          maxLength: 255
+        classification:
+          type: string
+          enum: [city, regency]
+    UpdateCityRequest:
+      type: object
+      properties:
+        provinceId:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        classification:
+          type: string
+          enum: [city, regency]
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        perPage:
+          type: integer
+        currentPage:
+          type: integer
+        lastPage:
+          type: integer
+        firstPage:
+          type: integer
+        firstPageUrl:
+          type: string
+        lastPageUrl:
+          type: string
+        nextPageUrl:
+          type: string
+          nullable: true
+        previousPageUrl:
+          type: string
+          nullable: true
+    PaginatedUsers:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PaginatedProvinces:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Province'
+    PaginatedCities:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CityWithProvince'
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message:
+                type: string
