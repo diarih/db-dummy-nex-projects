@@ -33,8 +33,13 @@ router.post('/login', [AuthController, 'login'])
 
 router
   .group(() => {
+    router.get('users/initiate', [UsersController, 'initiate'])
+    router.get('provinces/initiate', [ProvincesController, 'initiate'])
+    router.get('cities/initiate', [CitiesController, 'initiate'])
+
     router.resource('users', UsersController).apiOnly()
     router.resource('provinces', ProvincesController).apiOnly()
     router.resource('cities', CitiesController).apiOnly()
   })
   .middleware(middleware.auth())
+

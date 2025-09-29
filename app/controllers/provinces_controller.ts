@@ -1,8 +1,26 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import apiResponseBuilder from '#services/api_response_builder'
+import { resolveWrapPreference } from '#services/standard_payload'
+import {
+  buildProvincesInitiateContent,
+  buildProvincesParamsSnapshot,
+} from '#services/resource_initiate'
 import Province from '#models/province'
 import createProvinceValidator from '#validators/province_create_validator'
 import updateProvinceValidator from '#validators/province_update_validator'
+
+function extractMeta(meta: any) {
+  if (!meta) {
+    return null
+  }
+
+  const { per_page: perPage, ...rest } = meta
+  return {
+    ...rest,
+    limit: perPage,
+  }
+}
 
 export default class ProvincesController {
   public async index({ request }: HttpContext) {
@@ -10,8 +28,9 @@ export default class ProvincesController {
     const withCities = ['1', 'true', 'yes'].includes(withCitiesFlag)
 
     const page = Number(request.input('page', 1)) || 1
-    const perPageInput = Number(request.input('perPage', 25)) || 25
-    const perPage = Math.min(Math.max(perPageInput, 1), 100)
+    const limitInput = Number(request.input('limit', request.input('perPage', 25))) || 25
+    const limit = Math.min(Math.max(limitInput, 1), 100)
+    const rawFilter = request.input('filter')
 
     const query = Province.query().orderBy('name')
 
@@ -19,18 +38,50 @@ export default class ProvincesController {
       query.preload('cities')
     }
 
-    const provinces = await query.paginate(page, perPage)
+    const provinces = await query.paginate(page, limit)
     provinces.baseUrl(request.url())
 
-    if (withCities) {
-      return provinces.serialize({
-        relations: {
-          cities: {},
-        },
-      })
-    }
+    const serialized = withCities
+      ? provinces.serialize({
+          relations: {
+            cities: {},
+          },
+        })
+      : provinces.serialize()
 
-    return provinces.serialize()
+    const wrapPreference = resolveWrapPreference(request.input('standardPayload'))
+    const params = buildProvincesParamsSnapshot(
+      page,
+      limit,
+      typeof rawFilter === 'string' ? rawFilter : undefined
+    )
+    const meta = extractMeta((serialized as any)?.meta)
+
+    return apiResponseBuilder.format(
+      {
+        params,
+        items: serialized.data,
+      },
+      {
+        wrap: wrapPreference,
+        meta,
+        status: {
+          message: 'Successfully get list of provinces',
+        },
+      }
+    )
+  }
+
+  public async initiate({ request }: HttpContext) {
+    const wrapPreference = resolveWrapPreference(request.input('standardPayload'))
+    const content = await buildProvincesInitiateContent()
+
+    return apiResponseBuilder.format(content, {
+      wrap: wrapPreference,
+      status: {
+        message: 'Successfully get initiate list of provinces',
+      },
+    })
   }
 
   public async show({ params }: HttpContext) {

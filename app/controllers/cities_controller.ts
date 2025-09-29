@@ -1,17 +1,38 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import apiResponseBuilder from '#services/api_response_builder'
+import { resolveWrapPreference } from '#services/standard_payload'
+import {
+  buildCitiesInitiateContent,
+  buildCitiesParamsSnapshot,
+  getCitiesOperatorMap,
+} from '#services/resource_initiate'
+import { parseFilterString, applyParsedFilters } from '#services/filter_parser'
 import City from '#models/city'
 import Province from '#models/province'
 import createCityValidator from '#validators/city_create_validator'
 import updateCityValidator from '#validators/city_update_validator'
 
+function extractMeta(meta: any) {
+  if (!meta) {
+    return null
+  }
+
+  const { per_page: perPage, ...rest } = meta
+  return {
+    ...rest,
+    limit: perPage,
+  }
+}
+
 export default class CitiesController {
   public async index({ request }: HttpContext) {
     const page = Number(request.input('page', 1)) || 1
-    const perPageInput = Number(request.input('perPage', 25)) || 25
-    const perPage = Math.min(Math.max(perPageInput, 1), 100)
+    const limitInput = Number(request.input('limit', request.input('perPage', 25))) || 25
+    const limit = Math.min(Math.max(limitInput, 1), 100)
 
     const provinceFilter = request.input('provinceId')
+    const rawFilter = request.input('filter')
 
     const citiesQuery = City.query().orderBy('name').preload('province')
 
@@ -22,12 +43,54 @@ export default class CitiesController {
       }
     }
 
-    const cities = await citiesQuery.paginate(page, perPage)
+    const parsedFilters = parseFilterString(rawFilter, getCitiesOperatorMap())
+    applyParsedFilters(citiesQuery, parsedFilters)
+
+    const cities = await citiesQuery.paginate(page, limit)
     cities.baseUrl(request.url())
 
-    return cities.serialize({
+    const serialized = cities.serialize({
       relations: {
         province: {},
+      },
+    })
+
+    const wrapPreference = resolveWrapPreference(request.input('standardPayload'))
+    const params = buildCitiesParamsSnapshot(
+      page,
+      limit,
+      typeof rawFilter === 'string' ? (rawFilter as string) : undefined
+    )
+    const meta = extractMeta((serialized as any)?.meta)
+
+    return apiResponseBuilder.format(
+      {
+        params,
+        items: serialized.data,
+      },
+      {
+        wrap: wrapPreference,
+        meta,
+        status: {
+          message: 'Successfully get list of cities',
+        },
+      }
+    )
+  }
+
+  public async initiate({ request }: HttpContext) {
+    const wrapPreference = resolveWrapPreference(request.input('standardPayload'))
+
+    const pageInput = Number(request.input('page', 1)) || 1
+    const limitInput = Number(request.input('limit', request.input('perPage', 25))) || 25
+    const filterInput = typeof request.input('filter') === 'string' ? (request.input('filter') as string) : undefined
+
+    const content = await buildCitiesInitiateContent(pageInput, limitInput, filterInput)
+
+    return apiResponseBuilder.format(content, {
+      wrap: wrapPreference,
+      status: {
+        message: 'Successfully get initiate list of cities',
       },
     })
   }
